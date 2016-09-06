@@ -1,0 +1,125 @@
+---
+title: "Applied Bayes in R"
+author: "Pavel Jakubec"
+date: "September, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(BayesianFirstAid)
+library(arm)
+library(pwr)
+data <- c(0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
+```
+
+# Bayes application in R
+
+***
+## 1. Introduction
+
+### 1.1 Why R and RStudio?
+
+Flexible (you can create your own functions and packages)   
+Reproducible (it is easy to show, what exactly you did to your data)   
+Cutting-edge ()      
+
+
+***
+### 1.2 Why Bayiesian methods?
+
+Easier to understand   
+Easier to communicate   
+[No p-values](https://www.amstat.org/newsroom/pressreleases/P-ValueStatement.pdf)   
+
+### Bayes theorem
+
+# $P(\theta \mid y)=\frac{P(\theta )P(y\mid \theta ))}{P(y)}$
+
+$\theta$ = Model parameter   
+y = Actual data   
+
+$posterior.distribution=\frac{Prior.for.(\theta )Probability.of.data.given.the.(\theta )}{Prior.probability.of.data}$ 
+
+The equation solves the problem of updating prior information about parameters by actually observed data to obtain posterior knowledge.
+
+Solves everyday questions like probability of rain or which theory is more likely to explain observed phenomenon (brest cancer, marble problem).
+
+EXPLAIN!:
+
+Credible interval (CrI) = Interval in which we expect the true parameter lies with probability of 0.95 (The symmetric 95%
+CrI is the interval between the 2.5% and 97.5%)
+
+(rewrite in my words) Marginal probability: the probability of an event occurring (p(A)), it may be thought of as an unconditional probability.  It is not conditioned on another event.  Example:  the probability that a card drawn is red (p(red) = 0.5).  Another example:  the probability that a card drawn is a 4  (p(four)=1/13).
+
+ 
+(rewrite in my words) Joint probability:  p(A and B).  The probability of event A and event B occurring.  It is the probability of the intersection of two or more events.  The probability of the intersection of A and B may be written p(A ∩ B). Example:  the probability that a card is a four and red =p(four and red) = 2/52=1/26.  (There are two red fours in a deck of 52, the 4 of hearts and the 4 of diamonds).
+
+ 
+(rewrite in my words) Conditional probability:  p(A|B) is the probability of event A occurring, given that event B occurs. Example:  given that you drew a red card, what’s the probability that it’s a four (p(four|red))=2/26=1/13.  So out of the 26 red cards (given a red card), there are two fours so 2/26=1/13.
+
+
+***
+### Bayesians are (more or less) ok with:
+Using prior knowledge   
+Low sample size (rare species, lots of NAs, expensive sampling)   
+Multiple comparisons [(Geldman et al., 2012)](http://www.stat.columbia.edu/~gelman/research/published/multiple2f.pdf)  
+
+### Upside
+More meaningful inferences (only exact way how to draw inferences for generalized mixed models [(Bolker et al., 2008)](http://www.cell.com/trends/ecology-evolution/pdf/S0169-5347(09)00019-6.pdf))
+
+### Downside
+Choosing a prior   
+Priors can disproportionaly influence the posterior  
+Computation heavy (less problem now)   
+Garbage in = Garbage out
+
+
+### Exaggerated Example:
+We screened Amur Leopard (*Panthera pardus orientalis*) for presence of dangerous blood parasite. If the true percentage of infected ones is greater then 10% we have to inform autorities and take measures to treat them.
+```{r}
+data <- data          #Hidden data
+N <- c(5,10,15,20,40) #Sample size
+sub <- list()         #List for storing data values with different N    
+tests.freq <- list()  #list for storing results of exact binomial test
+tests.bayes <- list() #list for storing results of bayesian version of exact binomial test
+for (i in 1:5) {
+  sub[[i]] <- data[1:N[i]]
+  tests.freq[[i]] <- stats::binom.test (c(length(sub[[i]][sub[[i]]=="1"]), length(sub[[i]][sub[[i]]=="0"])), p=0.1, alternative="greater")
+  tests.bayes[[i]] <- BayesianFirstAid::bayes.binom.test(c(length(sub[[i]][sub[[i]]=="1"]), length(sub[[i]][sub[[i]]=="0"])), p=0.1, n.iter = 150000)
+}
+tests.freq
+tests.bayes
+
+plot (tests.bayes[[1]])
+summary(tests.bayes[[1]])
+diagnostics(tests.bayes[[1]])
+
+```
+***
+#### * The true proportion of infected animals is 20 %.
+```{r}
+data
+```
+
+#### * We would need probably **ALL** Amur Leopards in the World to barely reject frequntist's H0 and do something to save them.  
+
+This is linked to statistical power of the test:
+```{r}
+h<-ES.h(0.2,0.1) #true proportion is 20% and H0 proportion is 10%
+pwr.p.test(h=h, n=40, sig.level=0.05, alternative = "greater")
+```
+
+#### * If the frequentist's H0 would be different, the outcome would be also different.    
+   
+       
+          
+###Why this is not true for bayesian?
+
+```{r}
+plot(tests.bayes[[2]])
+```
+
+
+## 2. Normal Linear Model
+
