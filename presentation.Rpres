@@ -190,11 +190,11 @@ Normal "Linear" Model - simulation
 left: 60%
 Michaelis-Menten curve: 
 $$f(x) = \frac {ax}{(b+x)}$$
-```{r}
+```{r, fig.height=10, fig.width=10}
 ##Data simulation
 set.seed(1337) # non-random generation
 #Parameters
-n <-  501 # sample size
+n <-  50 # sample size
 sigma <- 5 # standard deviation of the residuals
 a <- 20 # asymptote 
 b <- 5 # half-maximum
@@ -205,21 +205,92 @@ y <- rnorm(x, micmen(x, a=a,b=b), sd=sigma)
 ***
 ```{r, echo=FALSE}
 data <- as.data.frame(cbind(x,y))
+mod <- lm(y~x)
 ggplot(data=data, aes(x=x,y=y))+
   geom_point()+
   stat_smooth(method=lm, se=FALSE)+
   stat_smooth(aes(x=x,y=y, colour="red"), formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
   ggtitle("Model Fit")
+```
 
+Normal "Linear" Model - Model inspection
+=======================================================
+```{r,echo=FALSE, echo=FALSE, fig.height=10, fig.width=10}
+par(mfrow=c(2,2))
+plot(mod)
 
-# abline(lm(y~x)) # insert regression line
-# curve(micmen(x, a=b0,b=b1), add=TRUE, col="red")
 ```
 
 
-Normal Linear Model - simulation
+
+Normal "Linear" Model - conclusions
 =======================================================
 ```{r}
 summary(lm(y~x))
+
 ```
 
+Normal "Linear" Model - conclusions
+=======================================================
+
+```{r}
+nsim <- 1000
+bsim <- sim(mod, n.sim=nsim)
+apply(coef(bsim), 2, quantile, prob=c(0.025, 0.975))
+
+```
+
+References and Acknowledgment
+=======================================================
+
+**Bolker, B. M.** (2008). *Ecological models and data in R.* Princeton University Press. 
+
+**Bolker, B. M., Brooks, M. E., Clark, C. J., Geange, S. W., Poulsen, J. R., Stevens, M. H. H., & White, J. S. S.** (2009). Generalized linear mixed models: a practical guide for ecology and evolution. *Trends in ecology & evolution*, 24(3), 127-135.  
+
+**Gelman, A., Hill, J., & Yajima, M.** (2012). Why we (usually) don't have to worry about multiple comparisons. *Journal of Research on Educational Effectiveness*, 5(2), 189-211.  
+
+**Korner-Nievergelt, F., Roth, T., von Felten, S., Guélat, J., Almasi, B., & Korner-Nievergelt, P.** (2015). *Bayesian data analysis in ecology using linear models with R, BUGS, and Stan.* Academic Press.  
+ 
+
+
+
+References and Acknowledgment
+=======================================================
+package           | version   | date       | source    
+------------------| ----------|------------|-----------
+ abind            |    1.4-5  | 2016-07-21 | CRAN (R 3.3.1)                              
+ arm              | * 1.9-1   | 2016-08-24 | CRAN (R 3.3.1)                              
+ BayesianFirstAid | * 0.1     | 2016-08-31 | Github 
+ circlize         | * 0.3.8   | 2016-08-14 | CRAN (R 3.3.1)                              
+ cluster          |   2.0.4   | 2016-04-18 | CRAN (R 3.3.1)                              
+ coda             | * 0.18-1  | 2015-10-16 | CRAN (R 3.3.1)                              
+ colorspace       |  1.2-6    | 2015-03-11 | CRAN (R 3.3.1)                              
+ devtools         | * 1.12.0  | 2016-06-24 | CRAN (R 3.3.1)                              
+ digest           |  0.6.10   | 2016-08-02 | CRAN (R 3.3.1)                              
+ ggplot2          |  * 2.1.0  | 2016-03-01 | CRAN (R 3.3.1)                              
+ GlobalOptions    |   0.0.10  | 2016-04-17 | CRAN (R 3.3.1)                              
+ gtable           |  0.2.0    | 2016-02-26 | CRAN (R 3.3.1)                              
+ knitr            |  * 1.14   | 2016-08-13 | CRAN (R 3.3.1)                              
+ lattice          |   0.20-33 | 2015-07-14 | CRAN (R 3.3.1)                              
+ lme4             | * 1.1-12  | 2016-04-16 | CRAN (R 3.3.1)                              
+ magrittr         |    1.5    | 2014-11-22 | CRAN (R 3.3.1) 
+ 
+ ***
+ package         |  version |date      | source      
+ ----------------|-----------|----------|---------------
+ MASS        |     * 7.3-45 | 2016-04-21 | CRAN (R 3.3.1)                              
+ Matrix      |     * 1.2-6  | 2016-05-02 | CRAN (R 3.3.1)                              
+ memoise     |       1.0.0  | 2016-01-29 | CRAN (R 3.3.1)                              
+ minqa       |       1.2.4  | 2014-10-09 | CRAN (R 3.3.1)                              
+ munsell     |       0.4.3  | 2016-02-13 | CRAN (R 3.3.1)                              
+ nlme        |       3.1-128 | 2016-05-10 |  CRAN (R 3.3.1)                              
+ nloptr      |       1.0.4  | 2014-08-04 | CRAN (R 3.3.1)                              
+ plyr        |       1.8.4  | 2016-06-08 | CRAN (R 3.3.1)                              
+ pwr         |     * 1.2-0  | 2016-08-24 | CRAN (R 3.3.1)                              
+ Rcpp        |       0.12.6 | 2016-07-19 | CRAN (R 3.3.1)                              
+ rjags       |     * 4-6    | 2016-02-19 | CRAN (R 3.3.1)                              
+ scales      |       0.4.0  | 2016-02-26 | CRAN (R 3.3.1)                              
+ shape      |        1.4.2  | 2014-11-05 | CRAN (R 3.3.0)                              
+ stringi    |        1.1.1  | 2016-05-27 | CRAN (R 3.3.0)                              
+ stringr    |        1.1.0  | 2016-08-19 | CRAN (R 3.3.1)                              
+ withr       |       1.0.2  | 2016-06-20 | CRAN (R 3.3.1)
