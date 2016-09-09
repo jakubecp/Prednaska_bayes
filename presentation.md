@@ -1,7 +1,7 @@
 Bayesian ecology in R
 ========================================================
 author: Pavel Jakubec
-date: "2016-09-06"
+date: "2016-09-07"
 width: 1920
 height: 1080
 transition: linear

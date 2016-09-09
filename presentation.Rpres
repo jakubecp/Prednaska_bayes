@@ -209,7 +209,7 @@ mod <- lm(y~x)
 ggplot(data=data, aes(x=x,y=y))+
   geom_point()+
   stat_smooth(method=lm, se=FALSE)+
-  stat_smooth(aes(x=x,y=y, colour="red"), formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
+  stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
   ggtitle("Model Fit")
 ```
 
