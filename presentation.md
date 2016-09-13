@@ -1,7 +1,7 @@
 Bayesian ecology in R
 ========================================================
 author: Pavel Jakubec
-date: "2016-09-07"
+date: "2016-09-13"
 width: 1920
 height: 1080
 transition: linear
@@ -29,7 +29,7 @@ Reasoning
 ========================================================
 left: 50%
 * Rose-ringed parakeet
-* Motivated reasoning ()
+* Motivated reasoning () + cognitive bias
 <br>
 
 ### Need for objective and transparent conclusions.  
@@ -256,32 +256,62 @@ pwr::pwr.p.test(h=h, power=0.8, sig.level=0.05, alternative = "greater")
 Normal "Linear" Model - simulation
 =======================================================
 left: 60%
-Michaelis-Menten curve: 
-$$f(x) = \frac {ax}{(b+x)}$$
+Michaelis-Menten curve:
+$$f(x) = \frac{ax}{b+x}$$
+
 
 ```r
 ##Data simulation
-set.seed(1337) # non-random generation
 #Parameters
-n <-  50 # sample size
+set.seed(1337) # non-random generation
 sigma <- 5 # standard deviation of the residuals
-a <- 20 # asymptote 
-b <- 5 # half-maximum
+a <- 30 # asymptote 
+b <- 25 # half-maximum
 #Simulation part
-x <- runif(n, 0, 30) # sample values of the covariate
-y <- rnorm(x, micmen(x, a=a,b=b), sd=sigma)
+x <- rep(seq(0,30,5),7)# sample values of the covariate ()
+y <- rnorm(x, mean=micmen(x, a=a,b=b), sd=sigma) #
 ```
 ***
 ![plot of chunk unnamed-chunk-10](presentation-figure/unnamed-chunk-10-1.png)
+Normal "Linear" Model - simulation
+=======================================================
+left: 60%
+Developmental rate ~ Temperature  
+
+
+```r
+rm(list=ls())
+##Data simulation
+#Parameters
+set.seed(1337) # non-random generation
+sigma <- 0.01055 # standard deviation of the residuals
+a <- -0.0087065 # intercept 
+b <- 0.0013934 # slope
+#Simulation part
+x <- rep(seq(0,30,5),7)# Temperature (independent variable)
+yhat <- a+b*x
+y <- rnorm(x, mean=yhat, sd=sigma) # Rate (dependent variable)
+```
+***
+![plot of chunk unnamed-chunk-12](presentation-figure/unnamed-chunk-12-1.png)
+Normal "Linear" Model - Model + Model inspection
+=======================================================
+left: 30%
+
+```r
+# Model
+mod <- lm(y~x)
+```
+***
+![plot of chunk unnamed-chunk-14](presentation-figure/unnamed-chunk-14-1.png)
 
 Normal "Linear" Model - Model inspection
 =======================================================
-![plot of chunk unnamed-chunk-11](presentation-figure/unnamed-chunk-11-1.png)
-
-
+![plot of chunk unnamed-chunk-15](presentation-figure/unnamed-chunk-15-1.png)
 
 Normal "Linear" Model - conclusions
 =======================================================
+left: 80%
 
 ```r
 summary(lm(y~x))
@@ -293,36 +323,62 @@ Call:
 lm(formula = y ~ x)
 
 Residuals:
-     Min       1Q   Median       3Q      Max 
--14.2276  -3.9244   0.2679   3.4184  17.5594 
+       Min         1Q     Median         3Q        Max 
+-0.0248192 -0.0078369 -0.0001081  0.0074473  0.0311367 
 
 Coefficients:
-            Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  9.02491    1.55110   5.818 4.74e-07 ***
-x            0.34729    0.08231   4.219 0.000108 ***
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -0.0079123  0.0031346  -2.524    0.015 *  
+x            0.0015704  0.0001739   9.032  7.7e-12 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 5.633 on 48 degrees of freedom
-Multiple R-squared:  0.2705,	Adjusted R-squared:  0.2553 
-F-statistic:  17.8 on 1 and 48 DF,  p-value: 0.0001081
+Residual standard error: 0.01217 on 47 degrees of freedom
+Multiple R-squared:  0.6345,	Adjusted R-squared:  0.6267 
+F-statistic: 81.57 on 1 and 47 DF,  p-value: 7.702e-12
 ```
+***
+TRUE parameters:  
+Intercept = -0.0087065   
+Slope = 0.0013934  
+$\sigma$ = 0.01055
 
 Normal "Linear" Model - conclusions
 =======================================================
+When to use arm::sim function:   
+* Simple models (lm, glm, lmer, glmer)  
+* No prior knowledge  
+* We need flat prior distributions   
 
 
 ```r
-nsim <- 1000
-bsim <- sim(mod, n.sim=nsim)
+nsim <- 5000
+bsim <- arm::sim(mod, n.sim=nsim)
+```
+
+CrI for coefficients and estimated residual standard deviation $\hat{\sigma}$
+
+```r
 apply(coef(bsim), 2, quantile, prob=c(0.025, 0.975))
 ```
 
 ```
-      (Intercept)         x
-2.5%     6.039237 0.1763549
-97.5%   11.997048 0.5040912
+      (Intercept)           x
+2.5%  -0.01403309 0.001220118
+97.5% -0.00167827 0.001918306
 ```
+
+```r
+quantile(bsim@sigma, prob=c(0.025, 0.975))
+```
+
+```
+      2.5%      97.5% 
+0.01013014 0.01521911 
+```
+
+***
+![plot of chunk unnamed-chunk-20](presentation-figure/unnamed-chunk-20-1.png)
 
 References and Acknowledgment
 =======================================================

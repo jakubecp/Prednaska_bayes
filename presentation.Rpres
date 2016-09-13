@@ -12,7 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(devtools)
 library(knitr)
 library(BayesianFirstAid)
+library(ggExtra)
 library(ggplot2)
+library(gridExtra)
 library(arm)
 library(pwr)
 library(circlize)
@@ -40,7 +42,7 @@ Reasoning
 ========================================================
 left: 50%
 * Rose-ringed parakeet
-* Motivated reasoning ()
+* Motivated reasoning () + cognitive bias
 <br>
 ```{r, include=FALSE}
 #funny and beautiful representation of 20x20 1-matrix
@@ -188,56 +190,132 @@ pwr::pwr.p.test(h=h, power=0.8, sig.level=0.05, alternative = "greater")
 Normal "Linear" Model - simulation
 =======================================================
 left: 60%
-Michaelis-Menten curve: 
-$$f(x) = \frac {ax}{(b+x)}$$
+Michaelis-Menten curve:
+$$f(x) = \frac{ax}{b+x}$$
+
 ```{r, fig.height=10, fig.width=10}
 ##Data simulation
-set.seed(1337) # non-random generation
 #Parameters
-n <-  50 # sample size
+set.seed(1337) # non-random generation
 sigma <- 5 # standard deviation of the residuals
-a <- 20 # asymptote 
-b <- 5 # half-maximum
+a <- 30 # asymptote 
+b <- 25 # half-maximum
 #Simulation part
-x <- runif(n, 0, 30) # sample values of the covariate
-y <- rnorm(x, micmen(x, a=a,b=b), sd=sigma)
+x <- rep(seq(0,30,5),7)# sample values of the covariate ()
+y <- rnorm(x, mean=micmen(x, a=a,b=b), sd=sigma) #
 ```
 ***
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.width=12, fig.height=12}
 data <- as.data.frame(cbind(x,y))
-mod <- lm(y~x)
 ggplot(data=data, aes(x=x,y=y))+
   geom_point()+
   stat_smooth(method=lm, se=FALSE)+
   stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
   ggtitle("Model Fit")
 ```
+Normal "Linear" Model - simulation
+=======================================================
+left: 60%
+Developmental rate ~ Temperature  
+
+```{r, fig.height=10, fig.width=10}
+rm(list=ls())
+##Data simulation
+#Parameters
+set.seed(1337) # non-random generation
+sigma <- 0.01055 # standard deviation of the residuals
+a <- -0.0087065 # intercept 
+b <- 0.0013934 # slope
+#Simulation part
+x <- rep(seq(0,30,5),7)# Temperature (independent variable)
+yhat <- a+b*x
+y <- rnorm(x, mean=yhat, sd=sigma) # Rate (dependent variable)
+```
+***
+```{r, echo=FALSE, fig.width=12, fig.height=12}
+data <- data.frame(temp=x, rate=y)
+ggplot(data=data, aes(x=temp,y=rate))+
+  geom_point()+
+  # stat_smooth(method=lm, se=FALSE)+
+  # stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
+  ggtitle("Simulated data")+
+  ylab("Developmental rate")+
+  xlab("Temperature (°C)")+
+  theme(title=element_text(size=35))
+```
+Normal "Linear" Model - Model + Model inspection
+=======================================================
+left: 30%
+```{r}
+# Model
+mod <- lm(y~x)
+```
+***
+```{r, echo=FALSE, fig.width=12, fig.height=12}
+#Inspection
+par(mfrow=c(2,2))
+plot(mod)
+```
 
 Normal "Linear" Model - Model inspection
 =======================================================
-```{r,echo=FALSE, echo=FALSE, fig.height=10, fig.width=10}
-par(mfrow=c(2,2))
-plot(mod)
-
+```{r, echo=FALSE, fig.width=12, fig.height=12}
+data <- as.data.frame(cbind(x,y))
+mod <- lm(y~x)
+p1 <- ggplot2::ggplot(data=data, aes(x=x,y=y))+
+  geom_point()+
+  stat_smooth(method=lm, se=FALSE)+
+  # stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
+  ggtitle("Model Fit")
+p1
 ```
-
-
 
 Normal "Linear" Model - conclusions
 =======================================================
+left: 80%
 ```{r}
 summary(lm(y~x))
 
 ```
+***
+TRUE parameters:  
+Intercept = -0.0087065   
+Slope = 0.0013934  
+$\sigma$ = 0.01055
 
 Normal "Linear" Model - conclusions
 =======================================================
+When to use arm::sim function:   
+* Simple models (lm, glm, lmer, glmer)  
+* No prior knowledge  
+* We need flat prior distributions   
 
 ```{r}
-nsim <- 1000
-bsim <- sim(mod, n.sim=nsim)
-apply(coef(bsim), 2, quantile, prob=c(0.025, 0.975))
+nsim <- 5000
+bsim <- arm::sim(mod, n.sim=nsim)
 
+```
+
+CrI for coefficients and estimated residual standard deviation $\hat{\sigma}$
+```{r}
+apply(coef(bsim), 2, quantile, prob=c(0.025, 0.975))
+quantile(bsim@sigma, prob=c(0.025, 0.975))
+```
+```{r, echo=FALSE}
+cf1 <- data.frame(Intercept=coef(bsim)[,1], Slope=coef(bsim)[,2], sigma=bsim@sigma)
+p2 <- ggplot2::ggplot (cf1, aes(Intercept,Slope))+
+  geom_point()
+p3 <- ggplot2::ggplot (cf1, aes(Intercept,sigma))+
+  geom_point()
+p4 <- ggplot2::ggplot (cf1, aes(Slope,sigma))+
+  geom_point()
+gp1 <- ggMarginal(p2, type = "histogram")
+gp2 <- ggMarginal(p3, type = "histogram")
+gp3 <- ggMarginal(p4, type = "histogram")
+```
+***
+```{r, echo=FALSE, fig.width=10, fig.height=10}
+grid.arrange(gp1, gp2, gp3, ncol=2, nrow =2)
 ```
 
 References and Acknowledgment
