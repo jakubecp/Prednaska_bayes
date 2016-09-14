@@ -2,8 +2,8 @@ Bayesian ecology in R
 ========================================================
 author: Pavel Jakubec
 date: "`r Sys.Date()`"
-width: 1920
-height: 1080
+width: 1600
+height: 1200
 transition: linear
 
 
@@ -17,33 +17,78 @@ library(ggplot2)
 library(gridExtra)
 library(arm)
 library(pwr)
+library(blmeco)
 library(circlize)
 data <- c(0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
 micmen <- function(x, a = 2, b = 1) {a * x/(b + x)} #Michaelis-Menten curve function
+#Function from blmeco, but without the legend
+triplot.normal.knownvariance2 <- function (theta.data, variance.known, n, prior.theta, prior.variance, 
+  legend = TRUE, ylim = c(0, max(yposterior)), legend.bty = "n") 
+{
+  x <- rnorm(n, mean = theta.data, sd = sqrt(variance.known))
+  xlim <- theta.data + c(-1, 1) * 3 * sqrt(variance.known)
+  steplength <- (xlim[2] - xlim[1])/500
+  xx <- seq(xlim[1], xlim[2], by = steplength)
+  yprior <- dnorm(xx, mean = prior.theta, sd = sqrt(prior.variance))
+  likelihood.function <- function(x, theta, variance.known) prod(1/(sqrt(2 * 
+      pi * sqrt(variance.known))) * exp(-1/(2 * variance.known) * 
+          (x - theta)^2))
+  likelihood <- numeric(length(xx))
+  for (i in 1:length(xx)) likelihood[i] <- likelihood.function(x, 
+    xx[i], variance.known = variance.known)
+  posterior.mean <- (prior.theta/prior.variance + n * mean(x)/variance.known)/(1/prior.variance + 
+      n/variance.known)
+  posterior.variance <- 1/(1/prior.variance + n/variance.known)
+  yposterior <- dnorm(xx, posterior.mean, sqrt(posterior.variance))
+  linewidth <- 2
+  plot(xx, yprior, type = "l", lty = 3, las = 1, ylab = "density", 
+    xlab = expression(theta), cex.lab = 1.4, cex.axis = 1.1, 
+    lwd = linewidth, ylim = ylim)
+  lines(xx, yposterior, lty = 1, lwd = linewidth)
+  lines(xx, likelihood/sum(likelihood) * 1/steplength, lty = 2, 
+    lwd = linewidth)
+  if (legend) 
+    legend(xlim[1], ylim[2], lwd = linewidth, lty = c(3, 
+      2, 1), legend = c("prior", "likelihood", "posterior"), 
+      bty = legend.bty)
+}
 ```
 Content
 ========================================================
 * **Scientific reasoning**
    + How we reason
    + Motivated reasoning
-   + Objective and transparent conclusions
 * **Bayes' theorem**
-  + Pros
-  + Cons
-  
+  + Explanation
+  + Terminology
+  + Pros & Cons
 * **Prior knowledge**  
-  + 
+  + Example
 * **Frequentists vs Bayesians**  
   + Comparison of binomial tests  
 * **Normal Linear model**
+  + Simulation
+  + Inspection
+  + Conclusions
 
 
 Reasoning
 ========================================================
 left: 50%
+
+![bayes](image/parakeet.jpg)   
+*Psittacula krameri*
+
+***
+
 * Rose-ringed parakeet
-* Motivated reasoning () + cognitive bias
+  + How many birds you have to see?
+* Motivated reasoning & cognitive bias
 <br>
+<div style="width:600px; height=450px">
+![bayes](image/spy2.jpg)
+</div> 
+*Alfred Dreyfus and Georges Picquart*
 ```{r, include=FALSE}
 #funny and beautiful representation of 20x20 1-matrix
 par(mar = c(1, 1, 1, 1), bg="black")
@@ -53,10 +98,8 @@ circlize::chordDiagram(matrix(1, 20, 20),
                        transparency = 0.85,
                        annotationTrack = NULL)
 ```
-### Need for objective and transparent conclusions.  
-***
-![bayes](image/parakeet.jpg)   
-*Psittacula krameri*
+<br>
+## Need for objective and transparent conclusions.  
 
 Bayes' theorem
 ========================================================
@@ -66,22 +109,49 @@ $$P(A \mid B)= \frac {P(A )P(B \mid A ))}{P(A)}$$
 $$P(\theta \mid y)= \frac {P(\theta )P(y\mid \theta ))}{P(y)}$$
 #### $\theta$ = Model parameter   
 #### y = Actual data
+$P(y)=\int P(\theta)P(y\mid\theta)d\theta$
+
+### Bayesians  
+Data = Truth, Parameters ~ Probability distribution  
+We are re-allocating credibility across possibilities  
+
 
 ***
 ![bayes](image/Thomas_Bayes.gif)   
 *Thomas Bayes (1702 - 1761)*
 
+
+
 Basic vocabulary
 ========================================================
-* **Prior**
-* **Posterior**
+* **Prior** - prior probability distribution (our believes)
+* **Posterior** - posterior probability distribution (in what we should believe after seeing the evidence (the data)) 
+* **Marginal Posterior** - probability distribution of single model parameter
+* **Likelihood** - $P(y\mid \theta )$  - measure of the information we can gain from the data
+* **MCMC** - Markov chain Monte Carlo (the most well known, but not only sampler from marginal posterior)
 
-
-* **MCMC** - Markov chain Monte Carlo (the most well known, but not only sampler from marginal posterior o)
-
-**Confidence interval x Credible interval**
+**Confidence interval vs. Credible interval**
 * We are 95% sure that the true mean is within this interval
-* The range of likely values of the parameter (defined as the point estimate + margin of error) with a specified level of confidence.
+* The range of likely values of the parameter (defined as the point estimate + margin of error) with a specified level of confidence.  
+
+***
+```{r, echo=T, fig.height=10, fig.width=12}
+triplot.normal.knownvariance2(theta.data=4, variance.known=4, n=5, prior.theta=8, prior.variance=4)
+```
+
+
+Prior knowledge
+========================================================
+
+```{r, echo=T, fig.height=10, fig.width=12}
+triplot.normal.knownvariance2(theta.data=4, variance.known=4, n=5, prior.theta=8, prior.variance=4)
+```
+
+***
+
+```{r, echo=T, fig.height=10, fig.width=12}
+triplot.normal.knownvariance2(theta.data=4, variance.known=4, n=5, prior.theta=8, prior.variance=1)
+```
 
 Prior knowledge
 ========================================================
@@ -99,7 +169,7 @@ FP <- 0.1 #False Positive: 10%
 
 $$P(cancer \mid positive test)= \frac {P(cancer )P(positive test \mid cancer))}{P(cancer )P(positive test \mid cancer))+P(no cancer)P(no cancer \mid positive test)}$$
 ```{r}
-prior <- 0.1 #Prior (prevalence of cancer in population): 1%
+prior <- 0.01 #Prior (prevalence of cancer in population): 1%
 
 # Bayesian interpretation of the test
 result <- (TP*prior)/(TP*prior+FP*(1-prior))
@@ -110,20 +180,23 @@ result*100
 
 Pros and cons
 ======================================================
+left: 70%
 * ### Bayesians are (more or less) ok with:
 Using prior knowledge   
 Low sample size (rare species, lots of NAs, expensive sampling)   
 Multiple comparisons [(Geldman et al., 2012)](http://goo.gl/SX1uVG)  
+Good way how to speed up science & research (significant results can be disproved)
 
 * ### Upside
-More meaningful inferences (only exact way how to draw inferences for generalized mixed models [(Bolker et al., 2008)](goo.gl/MQG1vS)
+More meaningful and comprehensive inferences (the only exact way how to draw inferences for generalized mixed models [(Bolker et al., 2008)](goo.gl/MQG1vS)
 
 * ### Downside
-Priors can disproportionaly influence the posterior  
+Priors can disproportionally influence the posterior  
 Choosing the right/appropriate prior can be challenging   
 Computation heavy (less problem now)   
 Garbage in = Garbage out
 
+***
 
 
 
@@ -131,9 +204,9 @@ Exagerated example of two approaches
 =======================================================
 left: 70%
 
-STORY: We screened Amur Leopard (*Panthera pardus orientalis*) for presence of dangerous blood parasite. If the true percentage of infected ones is greater then 10% we have to inform autorities and take measures to treat them.
+STORY: We screened Amur Leopard (*Panthera pardus orientalis*) for presence of dangerous blood parasite. If the true percentage of infected ones is greater then 10% we have to inform authorities and take measures to treat them.
    
-CHALENGE: Amur Leoprad is very rare and endangered animal, therefore you should use the smallest sample posible.
+CHALENGE: Amur Leopard is very rare and endangered animal, therefore you should use the smallest sample possible
 
 ```{r}
 data <- data          #Hidden data
@@ -177,7 +250,7 @@ Exagerated example of two approaches
 data
 ```
 
-* We would need probably **ALL** Amur Leopards in the World to barely reject frequntist's H0 and do something to save them.     
+* We would need probably **ALL** Amur Leopards in the World to barely reject frequentist's H0 and do something to save them.     
 
 This is linked to statistical power of the test:
 ```{r}
@@ -185,7 +258,33 @@ h<-pwr::ES.h(0.2,0.1) #true proportion is 20% and H0 proportion is 10%
 pwr::pwr.p.test(h=h, power=0.8, sig.level=0.05, alternative = "greater")
 ```
 
-* If the frequentist's H0 would be different, the outcome would be also different.  
+* If the frequentist's H0 would be different, the outcome would be also different, which is not the case for Bayesian variant.  
+
+Exagerated example of two approaches
+=======================================================
+
+
+```{r}
+tests.bayes[[1]]
+tests.bayes[[2]]
+```
+Exagerated example of two approaches
+=======================================================
+
+
+```{r}
+tests.bayes[[3]]
+tests.bayes[[4]]
+```
+
+Exagerated example of two approaches
+=======================================================
+
+
+```{r}
+tests.freq[[5]]
+tests.bayes[[5]]
+```
 
 Normal "Linear" Model - simulation
 =======================================================
@@ -213,23 +312,23 @@ ggplot(data=data, aes(x=x,y=y))+
   stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
   ggtitle("Model Fit")
 ```
-Normal "Linear" Model - simulation
+Normal Linear Model - simulation
 =======================================================
 left: 60%
-Developmental rate ~ Temperature  
+Length of development ~ Temperature  
 
 ```{r, fig.height=10, fig.width=10}
 rm(list=ls())
 ##Data simulation
 #Parameters
 set.seed(1337) # non-random generation
-sigma <- 0.01055 # standard deviation of the residuals
-a <- -0.0087065 # intercept 
-b <- 0.0013934 # slope
+sigma <- 5 # standard deviation of the residuals
+a <- 30 # intercept 
+b <- -1 # slope
 #Simulation part
-x <- rep(seq(0,30,5),7)# Temperature (independent variable)
+x <- rep(seq(0,30,5),3)# Temperature (independent variable)
 yhat <- a+b*x
-y <- rnorm(x, mean=yhat, sd=sigma) # Rate (dependent variable)
+y <- rnorm(x, mean=yhat, sd=sigma) # Length of development(dependent variable)
 ```
 ***
 ```{r, echo=FALSE, fig.width=12, fig.height=12}
@@ -239,11 +338,11 @@ ggplot(data=data, aes(x=temp,y=rate))+
   # stat_smooth(method=lm, se=FALSE)+
   # stat_smooth(aes(x=x,y=y, colour="red"), method = glm, formula =y ~ micmen(x, a=a,b=b), se=FALSE, show.legend = FALSE)+
   ggtitle("Simulated data")+
-  ylab("Developmental rate")+
-  xlab("Temperature (Â°C)")+
+  ylab("Length of development (days)")+
+  xlab("Temperature (°C)")+
   theme(title=element_text(size=35))
 ```
-Normal "Linear" Model - Model + Model inspection
+Normal Linear Model - Model + Model inspection
 =======================================================
 left: 30%
 ```{r}
@@ -257,7 +356,7 @@ par(mfrow=c(2,2))
 plot(mod)
 ```
 
-Normal "Linear" Model - Model inspection
+Normal Linear Model - Model inspection
 =======================================================
 ```{r, echo=FALSE, fig.width=12, fig.height=12}
 data <- as.data.frame(cbind(x,y))
@@ -270,28 +369,19 @@ p1 <- ggplot2::ggplot(data=data, aes(x=x,y=y))+
 p1
 ```
 
-Normal "Linear" Model - conclusions
-=======================================================
-left: 80%
-```{r}
-summary(lm(y~x))
 
-```
-***
-TRUE parameters:  
-Intercept = -0.0087065   
-Slope = 0.0013934  
-$\sigma$ = 0.01055
 
-Normal "Linear" Model - conclusions
+Normal Linear Model - Bayesian conclusions
 =======================================================
 When to use arm::sim function:   
 * Simple models (lm, glm, lmer, glmer)  
 * No prior knowledge  
-* We need flat prior distributions   
+* We need flat prior distributions  
+
+Other options: Stan, JAGS or Bugs
 
 ```{r}
-nsim <- 5000
+nsim <- 2000
 bsim <- arm::sim(mod, n.sim=nsim)
 
 ```
@@ -317,6 +407,111 @@ gp3 <- ggMarginal(p4, type = "histogram")
 ```{r, echo=FALSE, fig.width=10, fig.height=10}
 grid.arrange(gp1, gp2, gp3, ncol=2, nrow =2)
 ```
+
+Normal Linear Model - Bayesian conclusions
+=======================================================
+Is the slope parameter is smaller or bigger then -1?
+```{r}
+sum(coef(bsim)[,2]< -1)/nsim
+sum(coef(bsim)[,2]> -1)/nsim
+```
+```{r}
+plot(x,y, pch=16, las=1, cex.lab=1.2) # plot observations
+for(i in 1:nsim) abline(coef(bsim)[i,1], coef(bsim)[i,2],
+col=rgb(0,0,0,0.05)) # add semitransparent regression lines
+```
+
+Normal Linear Model - Bayesian conclusions
+=======================================================
+
+95% Credible interval
+```{r, fig.width=10, fig.height=10 }
+newdat <- data.frame(x=seq(0, 30, by=0.1))
+newmodmat <- model.matrix(~x, data=newdat)
+fitmat <- matrix(ncol=nsim, nrow=nrow(newdat))
+for(i in 1:nsim) fitmat[,i] <- newmodmat %*% coef(bsim)[i,]
+plot(x,y, pch=16, las=1, cex.lab=1.2)
+abline(mod, lwd=2)
+lines(newdat$x, apply(fitmat, 1, quantile, prob=0.025), lty=3)
+lines(newdat$x, apply(fitmat, 1, quantile, prob=0.975), lty=3)
+```
+
+
+Normal Linear Model - Bayesian conclusions
+=======================================================
+95% Credible interval + Posterior predictive distribution
+```{r}
+newy <- matrix(ncol=nsim, nrow=nrow(newdat))
+# for each simulated fitted value, simulate one new y-value
+for(i in 1:nsim) newy[,i] <- rnorm(nrow(newdat), mean=fitmat[,i],
+sd=bsim@sigma[i])
+plot(x,y, pch=16, las=1, cex.lab=1.2)
+abline(mod, lwd=2)
+lines(newdat$x, apply(fitmat, 1, quantile, prob=0.025), lty=3)
+lines(newdat$x, apply(fitmat, 1, quantile, prob=0.975), lty=3)
+lines(newdat$x, apply(newy, 1, quantile, prob=0.025), lty=2)
+lines(newdat$x, apply(newy, 1, quantile, prob=0.975), lty=2)
+```
+
+
+Normal Linear Model - Frequentist conclusions
+=======================================================
+left: 80%
+```{r}
+summary(lm(y~x))
+
+```
+***
+TRUE parameters:  
+Intercept = 30   
+Slope = -1  
+$\sigma$ = 5
+
+ANOVA
+=======================================================
+
+```{r}
+rm(list=ls())
+##One-Way ANOVA
+rm(list = ls())
+mu <- 12
+sigma <- 2
+b1 <- 3
+b2 <- -5
+n <- 90
+group <- factor(rep(c(1,2,3), each=30))
+
+simresid <- rnorm(n, mean=0, sd=sigma)
+y <- mu+as.numeric(group=="2")*b1+as.numeric(group=="3")*b2+simresid
+
+
+```
+
+ANOVA
+=======================================================
+```{r}
+group <- factor(group)
+mod <- lm(y~group)
+summary(mod)$sigma
+
+bsim <- arm::sim(mod, n.sim=1000)
+m.g1 <- coef(bsim)[,1]
+m.g2 <- coef(bsim)[,1]+coef(bsim)[,2]
+m.g3 <- coef(bsim)[,1]+coef(bsim)[,3]
+
+hist (coef(bsim),breaks= 100)
+
+```
+
+
+Reminder
+=======================================================
+$$P(\theta \mid y)= \frac {P(\theta )P(y\mid \theta ))}{P(y)}$$
+* Analysis similar to Frequentist and Likelihood versions
+* Data = Truth, Parameters ~ Probability distribution  
+* We are re-allocating credibility across possibilities  
+* You do not have to specify prior to be basian
+* Outcome does not relly on how you specify the hypothesis
 
 References and Acknowledgment
 =======================================================
